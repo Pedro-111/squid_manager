@@ -181,7 +181,41 @@ uninstall() {
 }
 
 
-# Menú principal
+# Nueva función para verificar los logs de Squid
+check_squid_logs() {
+    echo "Últimas 20 líneas del log de acceso de Squid:"
+    sudo tail -n 20 /var/log/squid/access.log
+    
+    echo -e "\nÚltimas 20 líneas del log de cache de Squid:"
+    sudo tail -n 20 /var/log/squid/cache.log
+}
+
+# Nueva función para verificar la configuración de puertos
+verify_port_config() {
+    echo "Configuración actual de puertos en squid.conf:"
+    grep "^http_port" /etc/squid/squid.conf
+    
+    echo -e "\nPuertos en uso por Squid:"
+    sudo netstat -tlnp | grep squid
+}
+
+# Nueva función para reiniciar Squid
+restart_squid() {
+    echo "Reiniciando Squid..."
+    sudo systemctl restart squid
+    echo "Squid reiniciado. Verificando estado:"
+    sudo systemctl status squid
+}
+
+# Nueva función para verificar permisos
+check_permissions() {
+    echo "Verificando permisos de archivos y directorios importantes:"
+    ls -l /etc/squid/squid.conf
+    ls -ld /var/spool/squid
+    ls -ld /var/log/squid
+}
+
+# Actualizar el menú principal
 while true; do
     echo "==== Menú de Gestión de Squid ===="
     echo "1. Configurar Squid"
@@ -191,7 +225,11 @@ while true; do
     echo "5. Actualizar script"
     echo "6. Desinstalar"
     echo "7. Verificar estado de Squid"
-    echo "8. Salir"
+    echo "8. Verificar logs de Squid"
+    echo "9. Verificar configuración de puertos"
+    echo "10. Reiniciar Squid"
+    echo "11. Verificar permisos"
+    echo "12. Salir"
     echo "Seleccione una opción:"
     read option
 
@@ -203,7 +241,11 @@ while true; do
         5) update_script ;;
         6) uninstall ;;
         7) check_squid_status ;;
-        8) exit 0 ;;
+        8) check_squid_logs ;;
+        9) verify_port_config ;;
+        10) restart_squid ;;
+        11) check_permissions ;;
+        12) exit 0 ;;
         *) echo "Opción inválida" ;;
     esac
 
