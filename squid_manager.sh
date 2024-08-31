@@ -121,8 +121,17 @@ open_port() {
     fi
     sudo sed -i "/acl Safe_ports port/a acl Safe_ports port $port" /etc/squid/squid.conf
     sudo sed -i "/acl SSL_ports port/s/$/ $port/" /etc/squid/squid.conf
-    sudo systemctl restart squid
-    echo "Puerto $port abierto y configurado"
+    # Verificar la configuración antes de reiniciar
+    if sudo squid -k parse; then
+        sudo systemctl restart squid
+        if sudo systemctl is-active --quiet squid; then
+            echo "Puerto $port abierto y configurado. Squid reiniciado correctamente."
+        else
+            echo "Error: No se pudo reiniciar Squid. Verifique los logs para más detalles."
+        fi
+    else
+        echo "Error en la configuración de Squid. No se reinició el servicio."
+    fi
 }
 
 # Función para cerrar un puerto
