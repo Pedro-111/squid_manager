@@ -84,16 +84,23 @@ refresh_pattern -i (/cgi-bin/|\?) 0     0%      0
 refresh_pattern .               0       20%     4320
 EOT
 
-    sudo systemctl restart squid
+    sudo systemctl stop squid
+    sudo systemctl start squid
+    sudo systemctl status squid
     echo "Squid configurado y reiniciado"
 }
-
+check_squid_status() {
+    echo "Estado actual de Squid:"
+    sudo systemctl status squid
+    echo "Puertos actualmente en uso:"
+    sudo netstat -tulpn | grep squid
+}
 # Función para abrir un puerto
 open_port() {
     echo "Ingrese el puerto que desea abrir:"
     read port
-    if grep -q "http_port $port" /etc/squid/squid.conf; then
-        echo "El puerto $port ya está abierto."
+    if netstat -tuln | grep ":$port " > /dev/null; then
+        echo "El puerto $port ya está en uso por otro proceso. Por favor, elija otro puerto."
         return
     fi
     echo "¿Desea configurar autenticación? (s/n)"
@@ -183,7 +190,8 @@ while true; do
     echo "4. Ver puertos abiertos"
     echo "5. Actualizar script"
     echo "6. Desinstalar"
-    echo "7. Salir"
+    echo "7. Verificar estado de Squid"
+    echo "8. Salir"
     echo "Seleccione una opción:"
     read option
 
@@ -194,7 +202,8 @@ while true; do
         4) view_ports ;;
         5) update_script ;;
         6) uninstall ;;
-        7) exit 0 ;;
+        7) check_squid_status ;;
+        8) exit 0 ;;
         *) echo "Opción inválida" ;;
     esac
 
