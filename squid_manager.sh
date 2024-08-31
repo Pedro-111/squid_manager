@@ -142,7 +142,7 @@ view_ports() {
     echo "----------------------"
     grep "^http_port" /etc/squid/squid.conf | while read line; do
         port=$(echo $line | awk '{print $2}')
-        if grep -q "auth_param.*basic.*ncsa_auth" /etc/squid/squid.conf; then
+        if grep -q "auth_param.*basic.*ncsa_auth.*$port" /etc/squid/squid.conf; then
             auth="Sí"
         else
             auth="No"
@@ -151,7 +151,6 @@ view_ports() {
     done
     echo "----------------------"
 }
-
 # Función para actualizar el script
 update_script() {
     echo "Actualizando el script..."
