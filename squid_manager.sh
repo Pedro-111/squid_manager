@@ -84,7 +84,91 @@ EOT
     echo "Squid configurado y reiniciado"
 }
 
-# ... (el resto del script permanece igual)
+# Función para abrir un puerto
+open_port() {
+    echo "Ingrese el puerto que desea abrir:"
+    read port
+    if grep -q "http_port $port" /etc/squid/squid.conf; then
+        echo "El puerto $port ya está abierto."
+        return
+    fi
+    echo "¿Desea configurar autenticación? (s/n)"
+    read auth
+    if [ "$auth" = "s" ]; then
+        echo "Ingrese el nombre de usuario:"
+        read username
+        echo "Ingrese la contraseña:"
+        read -s password
+        echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
+        echo "auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd" | sudo tee -a /etc/squid/squid.conf
+        echo "acl authenticated proxy_auth REQUIRED" | sudo tee -a /etc/squid/squid.conf
+        echo "http_access allow authenticated" | sudo tee -a /etc/squid/squid.conf
+        sudo htpasswd -cb /etc/squid/passwd $username $password
+    else
+        echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
+    fi
+    sudo sed -i "/acl Safe_ports port/a acl Safe_ports port $port" /etc/squid/squid.conf
+    sudo sed -i "/acl SSL_ports port/s/$/ $port/" /etc/squid/squid.conf
+    sudo systemctl restart squid
+    echo "Puerto $port abierto y configurado como seguro"
+}
+
+# Función para cerrar un puerto
+close_port() {
+    echo "Ingrese el puerto que desea cerrar:"
+    read port
+    sudo sed -i "/http_port $port/d" /etc/squid/squid.conf
+    sudo sed -i "/acl Safe_ports port $port/d" /etc/squid/squid.conf
+    sudo sed -i "s/ $port//" /etc/squid/squid.conf
+    sudo systemctl restart squid
+    echo "Puerto $port cerrado"
+}
+
+# Función para ver puertos abiertos
+view_ports() {
+    echo "Puertos proxy abiertos:"
+    echo "----------------------"
+    echo "| Puerto | Autenticación |"
+    echo "----------------------"
+    grep "^http_port" /etc/squid/squid.conf | while read line; do
+        port=$(echo $line | awk '{print $2}')
+        if grep -q "auth_param.*basic.*ncsa_auth" /etc/squid/squid.conf; then
+            auth="Sí"
+        else
+            auth="No"
+        fi
+        printf "| %-6s | %-13s |\n" "$port" "$auth"
+    done
+    echo "----------------------"
+}
+
+# Función para actualizar el script
+update_script() {
+    echo "Actualizando el script..."
+    # Aquí puedes agregar la lógica para actualizar el script
+    echo "Script actualizado"
+}
+
+# Función para desinstalar
+uninstall() {
+    echo "¿Desea desinstalar el servicio de proxy? (s/n)"
+    read answer
+    if [ "$answer" = "s" ]; then
+        sudo apt-get remove squid -y
+        sudo apt-get autoremove -y
+        echo "Servicio de proxy desinstalado"
+    fi
+    
+    echo "¿Desea desinstalar este script? (s/n)"
+    read answer
+    if [ "$answer" = "s" ]; then
+        echo "Desinstalando el script..."
+        # Aquí puedes agregar la lógica para eliminar el script
+        echo "Script desinstalado"
+        exit 0
+    fi
+}
+
 
 # Menú principal
 while true; do
