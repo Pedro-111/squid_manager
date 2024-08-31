@@ -110,17 +110,19 @@ open_port() {
         echo "Ingrese la contraseña:"
         read -s password
         echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
-        echo "auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd" | sudo tee -a /etc/squid/squid.conf
-        echo "acl authenticated proxy_auth REQUIRED" | sudo tee -a /etc/squid/squid.conf
-        echo "http_access allow authenticated" | sudo tee -a /etc/squid/squid.conf
-        sudo htpasswd -cb /etc/squid/passwd $username $password
+        echo "acl auth_users_$port proxy_auth $username" | sudo tee -a /etc/squid/squid.conf
+        echo "http_access allow auth_users_$port" | sudo tee -a /etc/squid/squid.conf
+        if ! grep -q "auth_param basic program" /etc/squid/squid.conf; then
+            echo "auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd" | sudo tee -a /etc/squid/squid.conf
+        fi
+        sudo htpasswd -b /etc/squid/passwd $username $password
     else
         echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
     fi
     sudo sed -i "/acl Safe_ports port/a acl Safe_ports port $port" /etc/squid/squid.conf
     sudo sed -i "/acl SSL_ports port/s/$/ $port/" /etc/squid/squid.conf
     sudo systemctl restart squid
-    echo "Puerto $port abierto y configurado como seguro"
+    echo "Puerto $port abierto y configurado"
 }
 
 # Función para cerrar un puerto
@@ -142,7 +144,7 @@ view_ports() {
     echo "----------------------"
     grep "^http_port" /etc/squid/squid.conf | while read line; do
         port=$(echo $line | awk '{print $2}')
-        if grep -q "auth_param.*basic.*ncsa_auth.*$port" /etc/squid/squid.conf; then
+        if grep -q "acl auth_users_$port proxy_auth" /etc/squid/squid.conf; then
             auth="Sí"
         else
             auth="No"
