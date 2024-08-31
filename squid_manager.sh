@@ -109,21 +109,29 @@ open_port() {
         read username
         echo "Ingrese la contraseña:"
         read -s password
-        echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
-        echo "acl auth_users_$port proxy_auth $username" | sudo tee -a /etc/squid/squid.conf
-        echo "http_access allow auth_users_$port" | sudo tee -a /etc/squid/squid.conf
+        
+        # Añadir configuración de autenticación si no existe
         if ! grep -q "auth_param basic program" /etc/squid/squid.conf; then
             echo "auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd" | sudo tee -a /etc/squid/squid.conf
             echo "auth_param basic realm Squid proxy-caching web server" | sudo tee -a /etc/squid/squid.conf
             echo "acl authenticated proxy_auth REQUIRED" | sudo tee -a /etc/squid/squid.conf
             echo "http_access allow authenticated" | sudo tee -a /etc/squid/squid.conf
         fi
+        
+        # Añadir el puerto
+        if ! grep -q "http_port $port" /etc/squid/squid.conf; then
+            echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
+        fi
+        
+        # Añadir o actualizar el usuario en el archivo de contraseñas
         sudo htpasswd -b /etc/squid/passwd $username $password
     else
         echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
     fi
+    
     sudo sed -i "/acl Safe_ports port/a acl Safe_ports port $port" /etc/squid/squid.conf
     sudo sed -i "/acl SSL_ports port/s/$/ $port/" /etc/squid/squid.conf
+    
     # Verificar la configuración antes de reiniciar
     if sudo squid -k parse; then
         sudo systemctl restart squid
