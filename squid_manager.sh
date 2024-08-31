@@ -9,6 +9,47 @@ check_squid() {
     fi
 }
 
+# Función para configurar Squid
+configure_squid() {
+    sudo cp /etc/squid/squid.conf /etc/squid/squid.conf.bak
+    sudo tee /etc/squid/squid.conf > /dev/null <<EOT
+acl localnet src 192.168.0.0/16
+acl SSL_ports port 443
+acl Safe_ports port 80          # http
+acl Safe_ports port 21          # ftp
+acl Safe_ports port 443         # https
+acl Safe_ports port 70          # gopher
+acl Safe_ports port 210         # wais
+acl Safe_ports port 1025-65535  # unregistered ports
+acl Safe_ports port 280         # http-mgmt
+acl Safe_ports port 488         # gss-http
+acl Safe_ports port 591         # filemaker
+acl Safe_ports port 777         # multiling http
+acl Safe_ports port 22          # ssh
+acl CONNECT method CONNECT
+
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+http_access allow localhost manager
+http_access deny manager
+http_access allow localnet
+http_access allow localhost
+http_access deny all
+
+http_port 3128
+
+coredump_dir /var/spool/squid
+
+refresh_pattern ^ftp:           1440    20%     10080
+refresh_pattern ^gopher:        1440    0%      1440
+refresh_pattern -i (/cgi-bin/|\?) 0     0%      0
+refresh_pattern .               0       20%     4320
+EOT
+
+    sudo systemctl restart squid
+    echo "Squid configurado y reiniciado"
+}
+
 # Función para abrir un puerto
 open_port() {
     echo "Ingrese el puerto que desea abrir:"
@@ -31,7 +72,6 @@ open_port() {
         sudo htpasswd -cb /etc/squid/passwd $username $password
     else
         echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
-        echo "http_access allow all" | sudo tee -a /etc/squid/squid.conf
     fi
     sudo systemctl restart squid
     echo "Puerto $port abierto"
@@ -94,22 +134,24 @@ uninstall() {
 # Menú principal
 while true; do
     echo "==== Menú de Gestión de Squid ===="
-    echo "1. Abrir puerto"
-    echo "2. Cerrar puerto"
-    echo "3. Ver puertos abiertos"
-    echo "4. Actualizar script"
-    echo "5. Desinstalar"
-    echo "6. Salir"
+    echo "1. Configurar Squid"
+    echo "2. Abrir puerto"
+    echo "3. Cerrar puerto"
+    echo "4. Ver puertos abiertos"
+    echo "5. Actualizar script"
+    echo "6. Desinstalar"
+    echo "7. Salir"
     echo "Seleccione una opción:"
     read option
 
     case $option in
-        1) check_squid && open_port ;;
-        2) close_port ;;
-        3) view_ports ;;
-        4) update_script ;;
-        5) uninstall ;;
-        6) exit 0 ;;
+        1) check_squid && configure_squid ;;
+        2) open_port ;;
+        3) close_port ;;
+        4) view_ports ;;
+        5) update_script ;;
+        6) uninstall ;;
+        7) exit 0 ;;
         *) echo "Opción inválida" ;;
     esac
 
