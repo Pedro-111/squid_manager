@@ -14,7 +14,7 @@ configure_squid() {
     sudo cp /etc/squid/squid.conf /etc/squid/squid.conf.bak
     sudo tee /etc/squid/squid.conf > /dev/null <<EOT
 acl localnet src 192.168.0.0/16
-acl SSL_ports port 443
+acl SSL_ports port 443 8080
 acl Safe_ports port 80          # http
 acl Safe_ports port 21          # ftp
 acl Safe_ports port 443         # https
@@ -26,6 +26,7 @@ acl Safe_ports port 488         # gss-http
 acl Safe_ports port 591         # filemaker
 acl Safe_ports port 777         # multiling http
 acl Safe_ports port 22          # ssh
+acl Safe_ports port 8080        # alternative http
 acl CONNECT method CONNECT
 
 http_access deny !Safe_ports
@@ -37,6 +38,10 @@ http_access allow localhost
 http_access deny all
 
 http_port 3128
+http_port 8080
+
+# Allow SSH tunneling
+always_direct allow SSL_ports
 
 coredump_dir /var/spool/squid
 
@@ -73,8 +78,10 @@ open_port() {
     else
         echo "http_port $port" | sudo tee -a /etc/squid/squid.conf
     fi
+    sudo sed -i "/acl Safe_ports port/a acl Safe_ports port $port" /etc/squid/squid.conf
+    sudo sed -i "/acl SSL_ports port/s/$/ $port/" /etc/squid/squid.conf
     sudo systemctl restart squid
-    echo "Puerto $port abierto"
+    echo "Puerto $port abierto y configurado como seguro"
 }
 
 # Función para cerrar un puerto
@@ -82,6 +89,8 @@ close_port() {
     echo "Ingrese el puerto que desea cerrar:"
     read port
     sudo sed -i "/http_port $port/d" /etc/squid/squid.conf
+    sudo sed -i "/acl Safe_ports port $port/d" /etc/squid/squid.conf
+    sudo sed -i "s/ $port//" /etc/squid/squid.conf
     sudo systemctl restart squid
     echo "Puerto $port cerrado"
 }
