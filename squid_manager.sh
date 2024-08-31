@@ -58,9 +58,9 @@ connect_timeout 1 minute
 request_timeout 5 minutes
 
 # Permitir conexiones SSL/TLS
-ssl_bump server-first all
-sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/lib/ssl_db -M 4MB
-sslcrtd_children 5
+#ssl_bump server-first all
+#sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/lib/ssl_db -M 4MB
+#sslcrtd_children 5
 
 # Logging
 access_log /var/log/squid/access.log squid
@@ -114,6 +114,9 @@ open_port() {
         echo "http_access allow auth_users_$port" | sudo tee -a /etc/squid/squid.conf
         if ! grep -q "auth_param basic program" /etc/squid/squid.conf; then
             echo "auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd" | sudo tee -a /etc/squid/squid.conf
+            echo "auth_param basic realm Squid proxy-caching web server" | sudo tee -a /etc/squid/squid.conf
+            echo "acl authenticated proxy_auth REQUIRED" | sudo tee -a /etc/squid/squid.conf
+            echo "http_access allow authenticated" | sudo tee -a /etc/squid/squid.conf
         fi
         sudo htpasswd -b /etc/squid/passwd $username $password
     else
