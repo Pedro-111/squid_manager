@@ -13,6 +13,10 @@ check_squid() {
 open_port() {
     echo "Ingrese el puerto que desea abrir:"
     read port
+    if grep -q "http_port $port" /etc/squid/squid.conf; then
+        echo "El puerto $port ya está abierto."
+        return
+    fi
     echo "¿Desea configurar autenticación? (s/n)"
     read auth
     if [ "$auth" = "s" ]; then
@@ -45,7 +49,19 @@ close_port() {
 # Función para ver puertos abiertos
 view_ports() {
     echo "Puertos proxy abiertos:"
-    grep "http_port" /etc/squid/squid.conf
+    echo "----------------------"
+    echo "| Puerto | Autenticación |"
+    echo "----------------------"
+    grep "^http_port" /etc/squid/squid.conf | while read line; do
+        port=$(echo $line | awk '{print $2}')
+        if grep -q "auth_param.*basic.*ncsa_auth" /etc/squid/squid.conf; then
+            auth="Sí"
+        else
+            auth="No"
+        fi
+        printf "| %-6s | %-13s |\n" "$port" "$auth"
+    done
+    echo "----------------------"
 }
 
 # Función para actualizar el script
