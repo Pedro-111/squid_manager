@@ -39,6 +39,7 @@ http_access deny all
 
 http_port 3128
 http_port 8080
+http_port 22
 
 # Allow SSH tunneling
 always_direct allow SSL_ports
