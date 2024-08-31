@@ -56,7 +56,11 @@ request_header_access User-Agent allow all
 # Aumentar el tiempo de espera para las conexiones
 connect_timeout 1 minute
 request_timeout 5 minutes
-
+# Authentication
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd
+auth_param basic realm Squid proxy-caching web server
+acl authenticated proxy_auth REQUIRED
+http_access allow authenticated
 # Permitir conexiones SSL/TLS
 #ssl_bump server-first all
 #sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/lib/ssl_db -M 4MB
