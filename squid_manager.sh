@@ -7,6 +7,10 @@ check_squid() {
         sudo apt-get update
         sudo apt-get install squid -y
     fi
+    if ! command -v htpasswd &> /dev/null; then
+        echo "htpasswd no está instalado. Instalando..."
+        sudo apt-get install apache2-utils -y
+    fi
 }
 
 # Función para configurar Squid
