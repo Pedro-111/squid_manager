@@ -43,7 +43,6 @@ http_access deny all
 
 # Configuración de puertos
 http_port 3128
-http_port 8080
 
 # Configuraciones adicionales para resolver problemas de conexión
 request_header_access Accept allow all
